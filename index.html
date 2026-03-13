@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>こえのかわり</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;700&family=Noto+Sans:wght@300;400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f0e8;
+    --paper: #faf8f3;
+    --ink: #1a1209;
+    --muted: #8b7355;
+    --accent: #c4622d;
+    --accent2: #4a7c59;
+    --line: #d4c9b0;
+    --shadow: rgba(26,18,9,0.12);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1612;
+      --paper: #231f1a;
+      --ink: #f0ebe0;
+      --muted: #a08c70;
+      --accent: #e07840;
+      --accent2: #5a9e6e;
+      --line: #3a3228;
+      --shadow: rgba(0,0,0,0.4);
+    }
+    .mic-icon::before { background: var(--bg); box-shadow: 0 7px 0 var(--bg); }
+    .card-top { background: #0e0c0a; }
+    select { background-color: var(--paper); color: var(--ink); }
+    textarea { color: var(--ink); }
+    .add-input { background: var(--paper); color: var(--ink); }
+    .phrase-btn { background: var(--paper); color: var(--ink); }
+    .phrase-btn:hover { background: var(--ink); color: var(--bg); }
+    .btn-clear { color: var(--muted); border-color: var(--line); }
+    .btn-clear:hover { color: var(--ink); border-color: var(--ink); }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 20% 50%, rgba(196,98,45,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(74,124,89,0.06) 0%, transparent 50%);
+    min-height: 100vh;
+    font-family: 'Noto Serif JP', 'Noto Sans', serif;
+    color: var(--ink);
+    display: flex; flex-direction: column; align-items: center;
+    padding: 40px 20px 60px;
+  }
+
+  header { text-align: center; margin-bottom: 40px; animation: fadeDown 0.8s ease both; }
+  .logo { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 8px; }
+  .mic-icon {
+    width: 44px; height: 44px; background: var(--ink); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; flex-shrink: 0;
+  }
+  .mic-icon::before {
+    content: ''; width: 14px; height: 14px; background: var(--bg); border-radius: 50%;
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -60%); box-shadow: 0 7px 0 var(--bg);
+  }
+  h1 { font-size: 2.2rem; font-weight: 300; letter-spacing: 0.15em; }
+  .subtitle { font-size: 0.85rem; color: var(--muted); letter-spacing: 0.08em; font-weight: 300; }
+
+  .main-card {
+    width: 100%; max-width: 680px; background: var(--paper); border-radius: 4px;
+    box-shadow: 0 2px 0 var(--line), 0 8px 40px var(--shadow), inset 0 1px 0 rgba(255,255,255,0.8);
+    overflow: hidden; animation: fadeUp 0.8s 0.2s ease both;
+  }
+  .card-top { background: var(--ink); padding: 16px 24px; display: flex; align-items: center; gap: 10px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #e05a3a; } .dot-y { background: #d4a72c; } .dot-g { background: #4a9e62; }
+  .card-label { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: rgba(255,255,255,0.4); letter-spacing: 0.1em; margin-left: auto; }
+
+  .textarea-wrap { padding: 32px 32px 0; position: relative; }
+  .ruled-lines {
+    position: absolute; inset: 32px 32px 0; pointer-events: none;
+    background-image: repeating-linear-gradient(to bottom, transparent, transparent 39px, var(--line) 39px, var(--line) 40px);
+    background-position: 0 8px;
+  }
+  textarea {
+    width: 100%; min-height: 220px; background: transparent; border: none; outline: none; resize: none;
+    font-family: 'Noto Serif JP', 'Noto Sans', serif;
+    font-size: 1.1rem; font-weight: 300; color: var(--ink);
+    line-height: 40px; position: relative; z-index: 1; caret-color: var(--accent);
+  }
+  textarea::placeholder { color: #c5b99a; font-weight: 300; }
+
+  .controls { padding: 20px 32px 28px; display: flex; flex-direction: column; gap: 16px; }
+  .settings-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .setting-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 120px; }
+  .setting-label { font-size: 0.7rem; color: var(--muted); letter-spacing: 0.1em; font-family: 'DM Mono', monospace; }
+
+  .voice-hint {
+    font-size: 0.65rem; color: var(--muted); font-family: 'DM Mono', monospace;
+    line-height: 1.6; opacity: 0.8; margin-top: 2px;
+  }
+
+  .slider-wrap { display: flex; align-items: center; gap: 8px; }
+  input[type=range] { flex: 1; height: 3px; -webkit-appearance: none; background: var(--line); border-radius: 2px; outline: none; cursor: pointer; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: var(--ink); border-radius: 50%; cursor: pointer; transition: transform 0.15s; }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+  .slider-val { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); width: 28px; text-align: right; }
+
+  select {
+    flex: 1; min-width: 160px; background: transparent; border: 1px solid var(--line); border-radius: 3px;
+    padding: 7px 10px; font-family: 'Noto Serif JP', 'Noto Sans', serif; font-size: 0.82rem; color: var(--ink);
+    cursor: pointer; outline: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b7355'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
+    transition: border-color 0.2s;
+  }
+  select:focus { border-color: var(--ink); }
+
+  .btn-row { display: flex; gap: 10px; }
+  .btn-speak {
+    flex: 1; padding: 16px; background: var(--ink); color: var(--bg); border: none; border-radius: 3px;
+    font-family: 'Noto Serif JP', 'Noto Sans', serif; font-size: 1rem; font-weight: 400; letter-spacing: 0.1em;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+    transition: background 0.2s, transform 0.15s; position: relative; overflow: hidden;
+  }
+  .btn-speak::after {
+    content: ''; position: absolute; inset: 0; background: var(--accent);
+    transform: scaleX(0); transform-origin: left; transition: transform 0.3s ease; z-index: 0;
+  }
+  .btn-speak.speaking::after { transform: scaleX(1); }
+  .btn-speak span { position: relative; z-index: 1; }
+  .btn-speak:hover { transform: translateY(-1px); }
+  .btn-speak:active { transform: translateY(0); }
+
+  .btn-clear {
+    padding: 16px 18px; background: transparent; border: 1px solid var(--line); border-radius: 3px;
+    cursor: pointer; color: var(--muted); font-size: 1rem; transition: all 0.2s;
+  }
+  .btn-clear:hover { border-color: var(--ink); color: var(--ink); }
+
+  .quick-phrases { width: 100%; max-width: 680px; margin-top: 28px; animation: fadeUp 0.8s 0.4s ease both; }
+  .quick-header { display: flex; align-items: center; margin-bottom: 12px; padding: 0 4px; }
+  .quick-title { font-size: 0.72rem; color: var(--muted); letter-spacing: 0.12em; font-family: 'DM Mono', monospace; }
+
+  .phrase-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
+  .phrase-item { position: relative; animation: popIn 0.2s ease both; }
+  .phrase-btn {
+    width: 100%; background: var(--paper); border: 1px solid var(--line); border-radius: 3px;
+    padding: 10px 36px 10px 14px; text-align: left;
+    font-family: 'Noto Serif JP', 'Noto Sans', serif;
+    font-size: 0.85rem; color: var(--ink); cursor: pointer; transition: all 0.15s; line-height: 1.5;
+  }
+  .phrase-btn:hover {
+    background: var(--ink); color: var(--bg); border-color: var(--ink);
+    transform: translateY(-1px); box-shadow: 0 4px 12px var(--shadow);
+  }
+  .phrase-btn:active { transform: translateY(0); }
+
+  .phrase-delete {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    width: 22px; height: 22px; background: transparent; border: none; cursor: pointer;
+    color: var(--muted); font-size: 0.75rem; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: all 0.15s; z-index: 2;
+  }
+  .phrase-item:hover .phrase-delete { opacity: 1; }
+  .phrase-delete:hover { background: #e05a3a; color: white; }
+
+  .add-phrase-area { margin-top: 10px; display: flex; gap: 8px; }
+  .add-input {
+    flex: 1; background: var(--paper); border: 1px dashed var(--line); border-radius: 3px;
+    padding: 10px 14px; font-family: 'Noto Serif JP', 'Noto Sans', serif; font-size: 0.85rem; color: var(--ink);
+    outline: none; transition: border-color 0.2s, border-style 0.2s;
+  }
+  .add-input::placeholder { color: #c5b99a; }
+  .add-input:focus { border-color: var(--ink); border-style: solid; }
+  .btn-add {
+    padding: 10px 18px; background: var(--ink); color: var(--bg); border: none; border-radius: 3px;
+    font-family: 'Noto Serif JP', 'Noto Sans', serif; font-size: 0.85rem; cursor: pointer;
+    white-space: nowrap; transition: all 0.15s;
+  }
+  .btn-add:hover { background: var(--accent2); transform: translateY(-1px); }
+  .btn-add:active { transform: translateY(0); }
+  .btn-add:disabled { opacity: 0.35; cursor: not-allowed; transform: none; background: var(--ink); }
+
+  .status-bar {
+    width: 100%; max-width: 680px; margin-top: 14px; padding: 0 4px;
+    display: flex; justify-content: space-between; animation: fadeUp 0.8s 0.5s ease both;
+  }
+  .char-count { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--muted); }
+  .no-support { font-size: 0.72rem; color: #c4622d; font-family: 'DM Mono', monospace; display: none; }
+
+  .wave-indicator { display: flex; align-items: center; gap: 4px; opacity: 0; transition: opacity 0.3s; }
+  .wave-indicator.active { opacity: 1; }
+  .wave-bar { width: 3px; height: 16px; background: var(--bg); border-radius: 2px; }
+  .speaking .wave-indicator.active .wave-bar { animation: wave 0.8s ease-in-out infinite; }
+  .wave-bar:nth-child(2) { animation-delay: 0.1s !important; }
+  .wave-bar:nth-child(3) { animation-delay: 0.2s !important; }
+  .wave-bar:nth-child(4) { animation-delay: 0.1s !important; }
+
+  @keyframes wave { 0%, 100% { height: 4px; } 50% { height: 18px; } }
+  @keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+  @keyframes fadeDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  @media (max-width: 480px) {
+    h1 { font-size: 1.7rem; }
+    .textarea-wrap { padding: 24px 20px 0; }
+    .ruled-lines { inset: 24px 20px 0; }
+    .controls { padding: 16px 20px 20px; }
+    .phrase-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="mic-icon"></div>
+    <h1 id="appTitle">こえのかわり</h1>
+  </div>
+  <p class="subtitle" id="appSubtitle">声が出なくても、言葉は届く</p>
+</header>
+
+<div class="main-card">
+  <div class="card-top">
+    <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+    <span class="card-label">TEXT TO SPEECH</span>
+  </div>
+  <div class="textarea-wrap">
+    <div class="ruled-lines"></div>
+    <textarea id="inputText" placeholder="ここに話したいことを入力してください…" rows="6"></textarea>
+  </div>
+  <div class="controls">
+    <div class="settings-row">
+      <div class="setting-group">
+        <span class="setting-label" id="labelVoice">声</span>
+        <select id="voiceSelect"><option value="">読み込み中…</option></select>
+        <span class="voice-hint" id="voiceHint">利用できる音声はデバイスによって異なります。機械音声のため、発音やイントネーションが実際と異なる場合があります。端末の設定から音声を追加できる場合があります。</span>
+      </div>
+    </div>
+    <div class="settings-row">
+      <div class="setting-group">
+        <span class="setting-label" id="labelSpeed">速さ</span>
+        <div class="slider-wrap">
+          <input type="range" id="rateSlider" min="0.5" max="2" step="0.1" value="1">
+          <span class="slider-val" id="rateVal">1.0</span>
+        </div>
+      </div>
+      <div class="setting-group">
+        <span class="setting-label" id="labelPitch">音程</span>
+        <div class="slider-wrap">
+          <input type="range" id="pitchSlider" min="0.5" max="2" step="0.1" value="1">
+          <span class="slider-val" id="pitchVal">1.0</span>
+        </div>
+      </div>
+      <div class="setting-group">
+        <span class="setting-label" id="labelVolume">音量</span>
+        <div class="slider-wrap">
+          <input type="range" id="volSlider" min="0" max="1" step="0.1" value="1">
+          <span class="slider-val" id="volVal">1.0</span>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-speak" id="speakBtn" onclick="toggleSpeak()">
+        <div class="wave-indicator" id="waveIndicator">
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+        </div>
+        <span id="btnLabel">▶ 読み上げる</span>
+      </button>
+      <button class="btn-clear" id="btnClear" onclick="clearText()" title="クリア">✕</button>
+    </div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <span class="char-count" id="charCount">0 文字</span>
+  <span class="no-support" id="noSupport">このブラウザは音声合成に対応していません</span>
+</div>
+
+<div class="quick-phrases">
+  <div class="quick-header">
+    <span class="quick-title" id="phraseTitle">よく使うフレーズ</span>
+  </div>
+  <div class="phrase-grid" id="phraseGrid"></div>
+  <div class="add-phrase-area">
+    <input class="add-input" id="newPhraseInput" type="text" placeholder="＋ 新しいフレーズを追加…" maxlength="80">
+    <button class="btn-add" id="addBtn" onclick="addPhrase()" disabled>追加</button>
+  </div>
+</div>
+
+<script>
+// ── UI strings per language ──────────────────────────────────
+const UI = {
+  ja: {
+    subtitle: '声が出なくても、言葉は届く',
+    placeholder: 'ここに話したいことを入力してください…',
+    labelVoice: '声', labelSpeed: '速さ', labelPitch: '音程', labelVolume: '音量',
+    speakBtn: '▶ 読み上げる', stopBtn: '■ 停止する',
+    phraseTitle: 'よく使うフレーズ',
+    addPlaceholder: '＋ 新しいフレーズを追加…', addBtn: '追加',
+    charUnit: '文字',
+    voiceHint: '利用できる音声はデバイスによって異なります。機械音声のため、発音やイントネーションが実際と異なる場合があります。端末の設定から音声を追加できる場合があります。',
+    noSupport: 'このブラウザは音声合成に対応していません',
+  },
+  en: {
+    subtitle: 'Your words, even without your voice',
+    placeholder: 'Type what you want to say…',
+    labelVoice: 'VOICE', labelSpeed: 'SPEED', labelPitch: 'PITCH', labelVolume: 'VOLUME',
+    speakBtn: '▶ Speak', stopBtn: '■ Stop',
+    phraseTitle: 'QUICK PHRASES',
+    addPlaceholder: '＋ Add a new phrase…', addBtn: 'Add',
+    charUnit: 'chars',
+    voiceHint: 'Available voices depend on your device. As machine-generated speech, pronunciation and intonation may differ from natural speech. Additional voices may be available in your device settings.',
+    noSupport: 'Speech synthesis is not supported in this browser.',
+  },
+  zh: {
+    subtitle: '即使没有声音，话语也能传达',
+    placeholder: '请输入您想说的内容…',
+    labelVoice: '声音', labelSpeed: '速度', labelPitch: '音调', labelVolume: '音量',
+    speakBtn: '▶ 朗读', stopBtn: '■ 停止',
+    phraseTitle: '常用短语',
+    addPlaceholder: '＋ 添加新短语…', addBtn: '添加',
+    charUnit: '字',
+    voiceHint: '可用的声音因设备而异。由于是机器合成语音，发音和语调可能与真实语音有所不同。设备设置中可能有更多声音可供下载。',
+    noSupport: '此浏览器不支持语音合成。',
+  },
+  ko: {
+    subtitle: '목소리가 없어도 말은 전달됩니다',
+    placeholder: '하고 싶은 말을 입력하세요…',
+    labelVoice: '목소리', labelSpeed: '속도', labelPitch: '음높이', labelVolume: '음량',
+    speakBtn: '▶ 읽기', stopBtn: '■ 중지',
+    phraseTitle: '자주 쓰는 문구',
+    addPlaceholder: '＋ 새 문구 추가…', addBtn: '추가',
+    charUnit: '자',
+    voiceHint: '사용 가능한 음성은 기기에 따라 다릅니다. 기계 음성이므로 발음과 억양이 실제와 다를 수 있습니다. 기기 설정에서 추가 음성을 다운로드할 수 있는 경우가 있습니다.',
+    noSupport: '이 브라우저는 음성 합성을 지원하지 않습니다.',
+  },
+  ms: {
+    subtitle: 'Kata-kata anda, walaupun tanpa suara',
+    placeholder: 'Taip apa yang anda ingin katakan…',
+    labelVoice: 'SUARA', labelSpeed: 'LAJU', labelPitch: 'NADA', labelVolume: 'KELANTANGAN',
+    speakBtn: '▶ Baca', stopBtn: '■ Berhenti',
+    phraseTitle: 'FRASA PANTAS',
+    addPlaceholder: '＋ Tambah frasa baharu…', addBtn: 'Tambah',
+    charUnit: 'aksara',
+    voiceHint: 'Suara yang tersedia bergantung pada peranti anda. Sebagai suara mesin, sebutan dan intonasi mungkin berbeza daripada pertuturan semula jadi. Suara tambahan mungkin tersedia dalam tetapan peranti anda.',
+    noSupport: 'Sintesis pertuturan tidak disokong dalam pelayar ini.',
+  },
+  id: {
+    subtitle: 'Kata-katamu, meski tanpa suara',
+    placeholder: 'Ketik apa yang ingin Anda katakan…',
+    labelVoice: 'SUARA', labelSpeed: 'KECEPATAN', labelPitch: 'NADA', labelVolume: 'VOLUME',
+    speakBtn: '▶ Bicara', stopBtn: '■ Berhenti',
+    phraseTitle: 'FRASA CEPAT',
+    addPlaceholder: '＋ Tambah frasa baru…', addBtn: 'Tambah',
+    charUnit: 'karakter',
+    voiceHint: 'Suara yang tersedia bergantung pada perangkat Anda. Karena menggunakan suara mesin, pengucapan dan intonasi mungkin berbeda dari ucapan alami. Suara tambahan mungkin tersedia di pengaturan perangkat Anda.',
+    noSupport: 'Sintesis suara tidak didukung di browser ini.',
+  },
+};
+
+// Map voice lang codes to UI lang keys
+function getLangKey(langCode) {
+  if (!langCode) return 'ja';
+  const base = langCode.split('-')[0].toLowerCase();
+  const map = { ja: 'ja', en: 'en', zh: 'zh', ko: 'ko', ms: 'ms', id: 'id' };
+  return map[base] || 'en';
+}
+
+// Language display names for grouping
+const LANG_NAMES = {
+  'ja': '日本語', 'en': 'English', 'zh': '中文', 'ko': '한국어',
+  'ms': 'Melayu', 'id': 'Indonesia', 'fr': 'Français', 'de': 'Deutsch',
+  'es': 'Español', 'it': 'Italiano', 'pt': 'Português', 'ru': 'Русский',
+  'ar': 'العربية', 'hi': 'हिन्दी', 'th': 'ภาษาไทย', 'vi': 'Tiếng Việt',
+};
+function getLangGroup(langCode) {
+  if (!langCode) return 'Other';
+  const base = langCode.split('-')[0].toLowerCase();
+  return LANG_NAMES[base] || langCode;
+}
+
+// Storage
+const STORAGE_KEY = 'koeno_kawari_phrases';
+const DEFAULT_PHRASES = [
+  'ありがとうございます',
+  'Thank you.',
+  'すみません',
+  'Excuse me.',
+  '声が出ません',
+  'I lost my voice.',
+  '少し待ってください',
+  'Please wait a moment.',
+  'お水をください',
+  'Water, please.',
+  'トイレに行きたいです',
+  'I need the restroom.',
+  '体調が悪いです',
+  'I feel unwell.',
+  '病院に行きたいです',
+  'I need to go to the hospital.',
+  '薬をください',
+  'I need medicine.',
+  '助けてください',
+  'Please help me.',
+];
+function loadPhrases() {
+  try { const r = localStorage.getItem(STORAGE_KEY); if (r) return JSON.parse(r); } catch(e) {}
+  return [...DEFAULT_PHRASES];
+}
+function savePhrases(p) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); } catch(e) {} }
+let phrases = loadPhrases();
+
+// Speech
+const synth = window.speechSynthesis;
+let voices = [], isSpeaking = false;
+if (!synth) document.getElementById('noSupport').style.display = 'block';
+
+function loadVoices() {
+  voices = synth.getVoices();
+  const sel = document.getElementById('voiceSelect');
+  const savedVoice = sel.value;
+  sel.innerHTML = '';
+  if (!voices.length) { sel.innerHTML = '<option value="">—</option>'; return; }
+
+  const groups = {};
+  voices.forEach(v => {
+    const g = getLangGroup(v.lang);
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(v);
+  });
+
+  const sortedKeys = Object.keys(groups).sort((a, b) => {
+    if (a === '日本語') return -1; if (b === '日本語') return 1;
+    return a.localeCompare(b);
+  });
+
+  sortedKeys.forEach(grpName => {
+    const g = document.createElement('optgroup'); g.label = grpName;
+    groups[grpName].forEach(v => {
+      const o = document.createElement('option'); o.value = v.name; o.textContent = v.name;
+      if (v.name === savedVoice) o.selected = true;
+      g.appendChild(o);
+    });
+    sel.appendChild(g);
+  });
+
+  if (!savedVoice && groups['日本語']) sel.value = groups['日本語'][0].name;
+
+  // Update UI to match selected voice language
+  updateUILang();
+}
+
+loadVoices();
+if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = loadVoices;
+
+// Update UI language based on selected voice
+function updateUILang() {
+  const sel = document.getElementById('voiceSelect');
+  const selectedVoice = voices.find(v => v.name === sel.value);
+  const langKey = selectedVoice ? getLangKey(selectedVoice.lang) : 'ja';
+  const L = UI[langKey] || UI.ja;
+
+  document.getElementById('appTitle').textContent = langKey === 'ja' ? 'こえのかわり' : 'Koe no Kawari';
+  document.getElementById('appSubtitle').textContent = L.subtitle;
+  document.getElementById('inputText').placeholder = L.placeholder;
+  document.getElementById('labelVoice').textContent = L.labelVoice;
+  document.getElementById('labelSpeed').textContent = L.labelSpeed;
+  document.getElementById('labelPitch').textContent = L.labelPitch;
+  document.getElementById('labelVolume').textContent = L.labelVolume;
+  document.getElementById('btnLabel').textContent = isSpeaking ? L.stopBtn : L.speakBtn;
+  document.getElementById('phraseTitle').textContent = L.phraseTitle;
+  document.getElementById('newPhraseInput').placeholder = L.addPlaceholder;
+  document.getElementById('addBtn').textContent = L.addBtn;
+  document.getElementById('voiceHint').textContent = L.voiceHint;
+  updateCharCount(langKey);
+
+  // store langKey for charCount updates
+  document._uiLang = langKey;
+}
+
+document.getElementById('voiceSelect').addEventListener('change', updateUILang);
+
+// Sliders
+['rateSlider','pitchSlider','volSlider'].forEach(id => {
+  const s = document.getElementById(id), v = document.getElementById(id.replace('Slider','Val'));
+  s.addEventListener('input', () => v.textContent = parseFloat(s.value).toFixed(1));
+});
+
+const textarea = document.getElementById('inputText');
+textarea.addEventListener('input', () => updateCharCount());
+
+function updateCharCount(langKey) {
+  const lk = langKey || document._uiLang || 'ja';
+  const L = UI[lk] || UI.ja;
+  document.getElementById('charCount').textContent = textarea.value.length + ' ' + L.charUnit;
+}
+
+function toggleSpeak() {
+  if (isSpeaking) { synth.cancel(); setSpeaking(false); return; }
+  const t = textarea.value.trim();
+  if (!t) { textarea.focus(); return; }
+  speak(t);
+}
+
+function speak(text) {
+  synth.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  const sv = document.getElementById('voiceSelect').value;
+  if (sv) { u.voice = voices.find(v => v.name === sv) || null; if (u.voice) u.lang = u.voice.lang; }
+  u.rate = parseFloat(document.getElementById('rateSlider').value);
+  u.pitch = parseFloat(document.getElementById('pitchSlider').value);
+  u.volume = parseFloat(document.getElementById('volSlider').value);
+  u.onstart = () => setSpeaking(true);
+  u.onend = u.onerror = () => setSpeaking(false);
+  synth.speak(u);
+}
+
+function setSpeaking(state) {
+  isSpeaking = state;
+  const btn = document.getElementById('speakBtn');
+  const wave = document.getElementById('waveIndicator');
+  const lk = document._uiLang || 'ja';
+  const L = UI[lk] || UI.ja;
+  if (state) { btn.classList.add('speaking'); wave.classList.add('active'); document.getElementById('btnLabel').textContent = L.stopBtn; }
+  else { btn.classList.remove('speaking'); wave.classList.remove('active'); document.getElementById('btnLabel').textContent = L.speakBtn; }
+}
+
+function clearText() {
+  synth.cancel(); setSpeaking(false);
+  textarea.value = ''; updateCharCount(); textarea.focus();
+}
+textarea.addEventListener('keydown', e => {
+  if ((e.ctrlKey||e.metaKey) && e.key==='Enter') { e.preventDefault(); toggleSpeak(); }
+});
+
+// Phrases
+function renderPhrases() {
+  const grid = document.getElementById('phraseGrid');
+  grid.innerHTML = '';
+  phrases.forEach((p, i) => {
+    const item = document.createElement('div'); item.className = 'phrase-item';
+    const btn = document.createElement('button'); btn.className = 'phrase-btn'; btn.textContent = p;
+    btn.addEventListener('click', () => { speak(p); textarea.value = p; updateCharCount(); });
+    const del = document.createElement('button'); del.className = 'phrase-delete'; del.textContent = '✕';
+    del.addEventListener('click', e => { e.stopPropagation(); phrases.splice(i, 1); savePhrases(phrases); renderPhrases(); });
+    item.appendChild(btn); item.appendChild(del); grid.appendChild(item);
+  });
+}
+
+function addPhrase() {
+  const inp = document.getElementById('newPhraseInput');
+  const t = inp.value.trim(); if (!t) return;
+  phrases.push(t); savePhrases(phrases); renderPhrases();
+  inp.value = ''; document.getElementById('addBtn').disabled = true;
+  document.getElementById('phraseGrid').lastChild?.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+document.getElementById('newPhraseInput').addEventListener('input', function() {
+  document.getElementById('addBtn').disabled = !this.value.trim();
+});
+document.getElementById('newPhraseInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); addPhrase(); }
+});
+
+document._uiLang = 'ja';
+renderPhrases();
+</script>
+</body>
+</html>
